@@ -23,7 +23,7 @@ export default function Page() {
         }
 
         fetchMessages();
-    })
+    }, [])
 
     return (
         <div>
