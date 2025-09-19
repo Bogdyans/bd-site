@@ -1,65 +1,56 @@
-// app/api/visits/route.ts
-import fs from 'fs';
-import path from 'path';
+import { supabase } from '@/lib/supabase'
+import { NextRequest } from 'next/server'
 
-const visitsFilePath = path.join(process.cwd(), 'data', 'messages.json');
-
-type Message = {
-    name: string,
-    message: string,
-}
-const messages: Message[] = [
-
-]
-
-// Ensure data directory exists
-function ensureDataDirectory() {
-    const dataDir = path.dirname(visitsFilePath);
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-        fs.writeFileSync(visitsFilePath, JSON.stringify([]), 'utf8');
-    }
-}
-
-function readMessages(): (Message[] | null) {
+export async function POST(request: NextRequest) {
     try {
-        if (fs.existsSync(visitsFilePath)) {
-            const data = fs.readFileSync(visitsFilePath, 'utf8');
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error('Error reading visits:', error);
-    }
-    return null;
-}
+        const data = await request.json()
 
-// Write message
-function writeMessage(name: string, message: string): void {
-    try {
-        ensureDataDirectory();
-        const messages = readMessages();
-        if (!messages) {
-            return;
+        // Вставляем сообщение в базу
+        const { error } = await supabase
+            .from('messages')
+            .insert([
+                {
+                    name: data.name,
+                    message: data.message
+                }
+            ])
+
+        if (error) {
+            return Response.json(
+                { error: error.message },
+                { status: 500 }
+            )
         }
 
-
-        messages.push({ name, message })
-        fs.writeFileSync(visitsFilePath, JSON.stringify(messages), 'utf8');
+        return Response.json({ status: 'success' })
     } catch (error) {
-        console.error('Error writing visits:', error);
+        return Response.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
     }
-}
-
-export async function POST(request: Request) {
-    const data = await request.json();
-
-    messages.push({name: data.name, message: data.message})
-    console.log(messages)
-
-    writeMessage(data.name, data.message);
-    return Response.json({ status: 'success' });
 }
 
 export async function GET() {
-    return Response.json({ messages });
+    try {
+        // Получаем все сообщения
+        const { data: messages, error } = await supabase
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+        if (error) {
+            return Response.json(
+                { error: error.message },
+                { status: 500 }
+            )
+        }
+
+        return Response.json({ messages })
+    } catch (error) {
+        return Response.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
 }

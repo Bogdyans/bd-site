@@ -1,47 +1,36 @@
-// app/api/visits/route.ts
-import fs from 'fs';
-import path from 'path';
-
-const visitsFilePath = path.join(process.cwd(), 'data', 'visits.json');
-
-// Ensure data directory exists
-function ensureDataDirectory() {
-    const dataDir = path.dirname(visitsFilePath);
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-    }
-}
-
-let visitors = 0;
-// Read visits count
-function readVisits(): number {
-    try {
-        ensureDataDirectory();
-        if (fs.existsSync(visitsFilePath)) {
-            const data = fs.readFileSync(visitsFilePath, 'utf8');
-            return JSON.parse(data).count;
-        }
-    } catch (error) {
-        console.error('Error reading visits:', error);
-    }
-    return 0;
-}
-
-// Write visits count
-function writeVisits(count: number): void {
-    try {
-        ensureDataDirectory();
-        fs.writeFileSync(visitsFilePath, JSON.stringify({ count }), 'utf8');
-    } catch (error) {
-        console.error('Error writing visits:', error);
-    }
-}
+import { supabase } from '@/lib/supabase'
+import { NextRequest } from 'next/server'
 
 export async function GET() {
-    const visitCount = readVisits();
-    writeVisits(visitCount + 1);
+    try {
+        // Атомарно увеличиваем счетчик
+        const { data, error } = await supabase.rpc('increment_visitor_count')
 
-    visitors += 1
-    return Response.json({ num_of_visits: visitors});
+        if (error) {
+            return Response.json(
+                { error: error.message },
+                { status: 500 }
+            )
+        }
+
+        // Получаем текущее значение
+        const { data: visitorData, error: fetchError } = await supabase
+            .from('visitors')
+            .select('count')
+            .single()
+
+        if (fetchError) {
+            return Response.json(
+                { error: fetchError.message },
+                { status: 500 }
+            )
+        }
+
+        return Response.json({ num_of_visits: visitorData.count })
+    } catch (error) {
+        return Response.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
 }
-
