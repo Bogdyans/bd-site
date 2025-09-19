@@ -37,7 +37,7 @@ function writeVisits(count: number): void {
     }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
     const visitCount = readVisits();
     writeVisits(visitCount + 1);
 
