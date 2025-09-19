@@ -1,103 +1,338 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import {useState, useEffect, useRef} from "react"
+import {getWordForDays, getWordForHours, getWordForMinutes, getWordForSeconds} from "@/utils/vocab";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function GoofyBirthdayPage() {
+    const [timeLeft, setTimeLeft] = useState({
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+    })
+    const [visitorCount, setVisitorCount] = useState(0);
+    const [showModal, setShowModal] = useState(false)
+
+    const [nameValue, setNameValue] = useState("");
+    const [messageValue, setMessageValue] = useState("");
+
+    const musicRef = useRef<HTMLAudioElement>(null);
+
+    useEffect(() => {
+        const targetDate = new Date("2025-10-21T00:00:00")
+
+        const updateCountdown = () => {
+            const now = new Date()
+            const difference = targetDate.getTime() - now.getTime()
+            console.log(difference)
+
+            if (difference > 0) {
+                setTimeLeft({
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                    minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+                    seconds: Math.floor((difference % (1000 * 60)) / 1000),
+                })
+            }
+        }
+
+        const fetchVisitCount = async () => {
+            fetch('/api/visitors', {
+                method: 'GET',
+                headers: {
+                    "Content-Type": 'application/json',
+                }
+            })
+                .then((resp) => resp.json())
+                .then(data => setVisitorCount(data.num_of_visits));
+        }
+
+        updateCountdown();
+        fetchVisitCount();
+        const interval = setInterval(updateCountdown, 1000)
+
+        musicRef.current = new Audio('audio/song.mp3');
+
+        return () => {
+            clearInterval(interval)
+
+            if (musicRef.current) {
+                musicRef.current.pause();
+            }
+        }
+    }, [])
+
+    const handleMusicButtonClick = () => {
+        if (!musicRef.current) {
+            return;
+        }
+        musicRef.current.play()
+            .catch(error => {
+                console.error("Ошибка воспроизведения музыки:", error);
+            });
+    }
+
+    const handleSurpriseButtonClick = () => {
+        setShowModal(true)
+    }
+
+    const closeModal = () => {
+        setShowModal(false)
+    }
+
+    const handleSend = () => {
+        fetch("/api/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: nameValue, message: messageValue }),
+        })
+        .then(() => {
+                setNameValue("");
+                setMessageValue("");
+            }
+        ).catch(() => {
+            console.log("Не удалось отправить сообщение(((")
+        })
+    }
+
+    return (
+        <div style={{backgroundColor: "#ffff00", minHeight: "100vh", fontFamily: "Comic Sans MS, cursive"}}>
+
+            <div className="text-right p-2">
+                <div className="counter inline-block">Посетитель #{visitorCount.toLocaleString()}</div>
+            </div>
+
+            <div className="marquee-container p-2">
+                <div className="marquee-text text-xl font-bold">
+                    *** ДОБРО ПОЖАЛОВАТЬ *** ПРИГОТОВТЕСЬ *** 21 ОКТЯБРЯ УЖЕ СКОРО *** А ПРЗДНОВАНИЕ ЕЩЕ РАНЬШЕ ***
+                </div>
+            </div>
+
+            <center>
+                <h1 className="rainbow-text text-6xl font-bold p-4" style={{textShadow: "3px 3px 0px #000000"}}>
+                    ДЕНЬ РОЖДЕНИЯ БОГДАНА
+                </h1>
+
+                <div className=" text-8xl p-4">🎂</div>
+
+                <table className="table-border shadow-2000s mx-auto mb-4" style={{backgroundColor: "#00ffff"}}>
+                    <tbody>
+                    <tr style={{backgroundColor: "#ff0000", color: "#000000"}}>
+                        <td className="text-2xl font-bold p-4 blink">*** ИНФОРМАЦИЯ О ПРАЗДНИКЕ ***</td>
+                    </tr>
+                    <tr>
+                        <td className="p-4" style={{backgroundColor: "#ffff00", color: "#ff0000"}}>
+                            <div className="text-xl font-bold">🎉 ГРАНДИОЗНАЯ ВЕЧЕРИНКА! 🎉</div>
+                            <div className="text-lg p-2">
+                                📅 Дата: 19 ОКТЯБРЯ 2025
+                                <br/>🕕 Время: Пока неизвестно
+                                <br/>📍 Место: Секретная локация
+                                <br/>🎵 Музыка, настолки и еда! Супер круть
+                                <br/>🍰 ТортЫ
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <table className="table-border shadow-2000s mx-auto mb-8" style={{backgroundColor: "#00ff00"}}>
+                    <tbody>
+                    <tr style={{backgroundColor: "#ff0000", color: "#000000"}}>
+                        <td colSpan={4} className="text-2xl font-bold p-4 blink">
+                            *** ВРЕМЯ ДО 21 ОКТЯБРЯ ***
+                        </td>
+                    </tr>
+                    <tr>
+                        <td
+                            className="p-4 text-xl font-bold bounce-2000s"
+                            style={{backgroundColor: "#ff00ff", color: "#00ff00"}}
+                        >
+                            {timeLeft.days}
+                            <br/>
+                            {
+                                getWordForDays(timeLeft.days)
+                            }
+                        </td>
+                        <td className="p-4 text-xl font-bold shake"
+                            style={{backgroundColor: "#00ffff", color: "#ff0000"}}>
+                            {timeLeft.hours}
+                            <br/>
+                            {
+                                getWordForHours(timeLeft.hours)
+                            }
+                        </td>
+                        <td className="p-4 text-xl font-bold spin-fast"
+                            style={{backgroundColor: "#ffff00", color: "#0000ff"}}>
+                            {timeLeft.minutes}
+                            <br/>
+                            {
+                                getWordForMinutes(timeLeft.minutes)
+                            }
+                        </td>
+                        <td className="p-4 text-xl font-bold flash-bg" style={{color: "#ffffff"}}>
+                            {timeLeft.seconds}
+                            <br/>
+                            {
+                                getWordForSeconds(timeLeft.seconds)
+                            }
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div className="p-4">
+                    <button
+                        className="button-2000s p-4 m-2 text-xl"
+                        onClick={handleMusicButtonClick}
+                    >
+                        *** НАЖМИТЕ ДЛЯ ПРАЗДНИЧНОЙ МУЗЫКИ ***
+                    </button>
+                    <button
+                        className="button-2000s p-4 m-2 text-xl"
+                        onClick={handleSurpriseButtonClick}
+                    >
+                        *** УДИВИТЬ МЕНЯ ***
+                    </button>
+                </div>
+
+
+                <table className="table-border shadow-2000s mx-auto mb-4" style={{backgroundColor: "#ff00ff"}}>
+                    <tbody>
+                    <tr style={{backgroundColor: "#00ff00", color: "#000000"}}>
+                        <td className="text-xl font-bold p-4">*** ОТПРАВЬТЕ МНЕ СООБЩЕНИЕ ***</td>
+                    </tr>
+                    <tr>
+                        <td className="p-4">
+                            <input
+                                type="text"
+                                placeholder="ВАШЕ ИМЯ..."
+                                className="p-2 border-4 border-black w-full"
+                                style={{backgroundColor: "#ffff00", color: "#ff0000"}}
+                                value={nameValue}
+                                onChange={(event) => setNameValue(event.target.value)}
+                            />
+                            <br/>
+                            <br/>
+                            <textarea
+                                placeholder="ОСТАВЬТЕ СООБЩЕНИЕ, ПОЖЕЛАНИЕ ИЛИ ВОПРОС..."
+                                className="p-2 border-4 border-black w-full"
+                                style={{backgroundColor: "#00ffff", color: "#0000ff"}}
+                                rows={3}
+                                cols={30}
+                                value={messageValue}
+                                onChange={(event) => setMessageValue(event.target.value)}
+                            />
+                            <br/>
+                            <br/>
+                            <button className="button-2000s p-2 w-full" onClick={handleSend}>Отправить</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div className="p-4" style={{backgroundColor: "#000000", color: "#00ff00"}}>
+                    <div className=" text-lg font-bold">*** САЙТ К ДНЮ РОЖДЕНИЯ ***</div>
+                    <div className="p-2">
+                        <a href="#" style={{color: "#ffff00"}}>
+                            &lt;&lt; СДЕЛАНО
+                        </a>{" "}
+                        |
+                        <a href="#" style={{color: "#ff00ff"}}>
+                            {" "}
+                            С ЛЮБОВЬЮ
+                            {" "}
+                        </a>
+                        {" "}
+                        |
+                        {" "}
+                        <a href="#" style={{color: "#00ffff"}}>
+                            БОГДАНОМ &gt;&gt;
+                        </a>
+                    </div>
+                </div>
+
+                <div className="p-4" style={{backgroundColor: "#ff0000", color: "#ffff00"}}>
+                    <div className="blink text-lg font-bold">*** ЛУЧШЕ ВСЕГО СМОТРИТСЯ В 800x600***</div>
+                    <div className="text-sm">
+                        This page was created with Microsoft FrontPage 2000
+                        <br/>
+                        Last updated: {new Date().toLocaleDateString()}
+                        <br/>
+                        <span className="rainbow-text">*** HAPPY BIRTHDAY TO ME ***</span>
+                    </div>
+                </div>
+            </center>
+
+
+            {showModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{
+                            backgroundColor: "#ff00ff",
+                            border: "5px solid #000000",
+                            padding: "20px",
+                            maxWidth: "500px",
+                            fontFamily: "Comic Sans MS, cursive",
+                        }}
+                    >
+                        <table className="table-border shadow-2000s" style={{ backgroundColor: "#00ff00", width: "100%" }}>
+                            <tbody>
+                            <tr style={{ backgroundColor: "#ffff00", color: "#ff0000" }}>
+                                <td className="text-2xl font-bold p-4 text-center blink">*** СЮРПРИЗ! ***</td>
+                            </tr>
+                            <tr>
+                                <td className="p-4" style={{ backgroundColor: "#ffffff", color: "#000000" }}>
+                                    <div className="text-lg text-center">
+                                        🎉 ВАУ! 🎉<br/>
+                                        <br/>
+                                        Ты хочешь удивить меня!
+                                        <br/>
+                                        Это значит, что ты настоящий друг!
+                                        <br/>
+                                        <br/>🎂 Приходи на вечеринку 19 октября! (Если ты в Дубне) 🎂<br/>
+                                        Будет весело, обещаю!
+                                        <br/>
+                                        <br/>💝 Если затрудняешься с выбором подарка, то можешь перейти на мой вишлист!
+                                        💝
+                                        <br/>
+                                        Он постоянно пополняется
+                                        <br/>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="p-4 text-center" style={{ backgroundColor: "#00ffff" }}>
+                                    <button
+                                        className="button-2000s p-3 m-2 text-lg"
+                                        onClick={() => window.open("https://followish.io/app/wishlists/y1wh0rtkua79ss", "_blank")}
+                                    >
+                                        *** ВИШЛИСТ ***
+                                    </button>
+                                    <button className="button-2000s p-3 m-2 text-lg" onClick={closeModal}>
+                                        *** НАЗАД ***
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
 }
