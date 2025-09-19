@@ -12,6 +12,7 @@ function ensureDataDirectory() {
     }
 }
 
+let visitors = 0;
 // Read visits count
 function readVisits(): number {
     try {
@@ -39,6 +40,8 @@ function writeVisits(count: number): void {
 export async function GET(request: Request) {
     const visitCount = readVisits();
     writeVisits(visitCount + 1);
-    return Response.json({ num_of_visits: visitCount});
+
+    visitors += 1
+    return Response.json({ num_of_visits: visitors});
 }
 

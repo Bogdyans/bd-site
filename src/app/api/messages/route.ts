@@ -8,6 +8,9 @@ type Message = {
     name: string,
     message: string,
 }
+const messages: Message[] = [
+
+]
 
 // Ensure data directory exists
 function ensureDataDirectory() {
@@ -39,6 +42,7 @@ function writeMessage(name: string, message: string): void {
             return;
         }
 
+
         messages.push({ name, message })
         fs.writeFileSync(visitsFilePath, JSON.stringify(messages), 'utf8');
     } catch (error) {
@@ -48,6 +52,10 @@ function writeMessage(name: string, message: string): void {
 
 export async function POST(request: Request) {
     const data = await request.json();
+
+    messages.push({name: data.name, message: data.message})
+    console.log(messages)
+
     writeMessage(data.name, data.message);
     return Response.json({ status: 'success' });
 }
