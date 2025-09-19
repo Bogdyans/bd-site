@@ -21,6 +21,8 @@ export default function Page() {
                 .then((resp) => resp.json())
                 .then(data => setMessages(data.messages));
         }
+
+        fetchMessages();
     })
 
     return (
